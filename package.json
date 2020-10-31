@@ -1,0 +1,13 @@
+{
+  "name": "contact-form",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:time2hack/contact-form.git",
+  "author": "Pankaj Patel <pankaj.patel@billie.io>",
+  "license": "MIT",
+  "dependencies": {
+    "https": "^1.0.0",
+    "mailgun-js": "^0.22.0",
+    "url": "^0.11.0"
+  }
+}

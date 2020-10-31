@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "name": "contact-form-script",
+  "version": "1.0.0",
+  "main": "contact-form.js",
+  "license": "MIT",
+  "dependencies": {
+    "mailgun-js": "^0.22.0",
+    "sparkpost": "^2.1.4"
+  }
+}

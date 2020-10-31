@@ -4,17 +4,16 @@ const mailgun = require("mailgun-js")({
   host: process.env.MAILGUN_HOST || "api.eu.mailgun.net",
 });
 
+const secretKey = process.env.RECAPTCHA_SECRETKEY
+
 exports.handler = function (event, context, callback) {
-  if (event.httpMethod !== "GET") {
+
+  console.log(event.headers['client-ip'])
+
+  if (event.httpMethod === "GET") {
     return {
       statusCode: 200,
       body: JSON.stringify({ status: "Error", message: "Endpoint only supports POST" }),
-    };
-  }
-  if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ status: "Error", message: "Not allowed" }),
     };
   }
   /*
@@ -34,11 +33,11 @@ exports.handler = function (event, context, callback) {
     })
     return;
   }
+  
 
   const URL = require('url')
   const https = require('https')
-
-  const verifyEndpoint = `https://www.google.com/recaptcha/api/siteverify?secret${secretKey}&response=${captcha}&remoteip=${ip}`
+  const verifyEndpoint = `https://www.google.com/recaptcha/api/siteverify?secret${secretKey}&response=${reqBody['g-recaptcha-response']}&remoteip=${event.headers['client-ip']}`
 
   const verify = URL.parse(verifyEndpoint)
   const options = {
@@ -57,6 +56,28 @@ exports.handler = function (event, context, callback) {
     // Log data
     res.on('data', function (body) {
       console.log(`Body: ${body}`);
+      const data = {
+        bcc: [reqBody.bcc],
+        to: process.env.EMAIL_TO,
+        from: process.env.EMAIL_FROM,
+        subject: process.env.EMAIL_SUBJECT,
+        template: process.env.MAILGUN_TEMPLATE,
+        "h:X-Mailgun-Variables": JSON.stringify(reqBody),
+      };
+    
+      mailgun.messages().send(data, function (error, body) {
+        if (error) {
+          callback(null, {
+            statusCode: 500,
+            body: JSON.stringify(error || { status: "Error" }),
+          });
+          return;
+        }
+        callback(null, {
+          statusCode: 200,
+          body: JSON.stringify(body || { status: "Success" }),
+        });
+      });
     })
   })
 
@@ -76,26 +97,4 @@ exports.handler = function (event, context, callback) {
 
   // Send form data to webhook request and end request
   req.end()
-
-  const data = {
-    from: reqBody.bcc,
-    to: process.env.TO_EMAIL || "hello@pankaj.pro",
-    subject: "Contact Form Submission",
-    template: "contact-form-template",
-    "h:X-Mailgun-Variables": JSON.stringify(reqBody),
-  };
-
-  mailgun.messages().send(data, function (error, body) {
-    if (error) {
-      callback(null, {
-        statusCode: 500,
-        body: JSON.stringify(error || { status: "Error" }),
-      });
-      return;
-    }
-    callback(null, {
-      statusCode: 200,
-      body: JSON.stringify(body || { status: "Success" }),
-    });
-  });
 };

@@ -1,9 +1,3 @@
-const mailgun = require("mailgun-js")({
-  apiKey: process.env.MAILGUN_KEY,
-  domain: process.env.MAILGUN_DOMAIN,
-  host: process.env.MAILGUN_HOST || "api.eu.mailgun.net",
-});
-
 const secretKey = process.env.RECAPTCHA_SECRETKEY
 
 exports.handler = function (event, context, callback) {
@@ -15,6 +9,9 @@ exports.handler = function (event, context, callback) {
       statusCode: 200,
       body: JSON.stringify({ status: "Error", message: "Endpoint only supports POST" }),
     };
+  }
+  if (event.httpMethod === "OPTIONS") {
+    return {statusCode: 204};
   }
   /*
   subject: Form Check
@@ -34,9 +31,9 @@ exports.handler = function (event, context, callback) {
     return;
   }
   
-
   const URL = require('url')
   const https = require('https')
+
   const verifyEndpoint = `https://www.google.com/recaptcha/api/siteverify?secret${secretKey}&response=${reqBody['g-recaptcha-response']}&remoteip=${event.headers['client-ip']}`
 
   const verify = URL.parse(verifyEndpoint)
@@ -56,13 +53,22 @@ exports.handler = function (event, context, callback) {
     // Log data
     res.on('data', function (body) {
       console.log(`Body: ${body}`);
+      
+      const mailgun = require("mailgun-js")({
+        apiKey: process.env.MAILGUN_KEY,
+        domain: process.env.MAILGUN_DOMAIN,
+        host: process.env.MAILGUN_HOST,
+      });
+
       const data = {
         bcc: [reqBody.bcc],
         to: process.env.EMAIL_TO,
         from: process.env.EMAIL_FROM,
         subject: process.env.EMAIL_SUBJECT,
         template: process.env.MAILGUN_TEMPLATE,
-        "h:X-Mailgun-Variables": JSON.stringify(reqBody),
+        "h:X-Mailgun-Variables": JSON.stringify(
+          Object.assign({}, reqBody, {timestamp: (new Date()).toUTCString()})
+        ),
       };
     
       mailgun.messages().send(data, function (error, body) {

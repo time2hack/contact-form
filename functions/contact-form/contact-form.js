@@ -98,4 +98,14 @@ exports.handler = function (event, context, callback) {
     req.end()
     
   }
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ status: "Error", message: "Endpoint only supports POST" }),
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*'
+      }
+    };
+  }
 };
